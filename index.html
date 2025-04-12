@@ -681,6 +681,13 @@
          document.addEventListener("DOMContentLoaded", () => {
              requestAnimationFrame(updateClock); // Start the loop
          });
+         document.addEventListener("click", () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+});
 
     </script>
 
