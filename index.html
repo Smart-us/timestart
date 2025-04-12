@@ -1,369 +1,680 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Segment Clock</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      flex-direction: column;
-    }
-    svg {
-      width: 400px;
-      height: 400px;
-    }
-    .tick {
-      stroke: white;
-      stroke-width: 2;
-    }
-    .label {
-      fill: white;
-      font-size: 24px;
-      font-family: Arial, Helvetica, sans-serif;
-      text-anchor: middle;
-      dominant-baseline: middle;
-    }
-    #segmentInfo {
-      color: white;
-      font-size: 26px;
-      font-family: Arial;
-      margin-top: 20px;
-      text-align: center;
-    }
-    #segmentMenuTrigger, #timeFormatToggle, #soundToggle {
-      cursor: pointer;
-      color: lightgreen;
-      font-size: 18px;
-      margin-top: 10px;
-      text-decoration: underline;
-    }
-    #segmentOptions {
-      display: none;
-      margin-top: 10px;
-      color: white;
-      text-align: center;
-    }
-    #segmentOptions div {
-      padding: 4px 0;
-      cursor: pointer;
-    }
-    select {
-      margin-top: 10px;
-      font-size: 16px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Segment Clock - Business Class</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #1a1a1a; /* Dark charcoal */
+            --text-color-primary: #f0f0f0; /* Off-white */
+            --text-color-secondary: #a0a0a0; /* Medium gray */
+            --accent-color: #d4af37; /* Soft Gold */
+            --accent-color-rgb: 212, 175, 55; /* RGB for rgba */
+            --border-color: #444;
+            --control-bg: #282828;
+            --control-hover-bg: #333;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            flex-direction: column;
+            font-family: 'Poppins', Arial;
+            color: var(--text-color-primary);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .clock-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        svg {
+            width: 90vw;
+            max-width: 380px; /* Slightly smaller for elegance */
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            overflow: visible;
+        }
+
+        /* Clock Face Base */
+        #clockFaceCircle {
+             fill: none; /* No background fill */
+             stroke: var(--border-color); /* Subtle border */
+             stroke-width: 20;
+        }
+
+        .tick {
+            stroke: var(--text-color-secondary);
+            stroke-width: 0.75; /* Thinner ticks */
+            opacity: 0.8;
+        }
+        .tick.major {
+             stroke-width: 1.5; /* Slightly thicker major ticks */
+             stroke: var(--text-color-primary);
+             opacity: 1;
+        }
+
+        .label {
+            fill: var(--text-color-secondary);
+            font-size: 20px; /* Standard size */
+            font-family: 'Lato', sans-serif;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            font-weight: 300; /* Lighter weight */
+             /* No rotation */
+        }
+
+        #digitalTime {
+            fill: var(--text-color-primary);
+            font-size: 34px; /* Slightly smaller */
+            font-family: 'Poppins', Arial, Helvetica, sans-serif;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            font-weight: 6000;
+            letter-spacing: 1px;
+            /* Remove excessive shadows */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Clock Hands */
+        #hour { stroke: var(--text-color-primary); stroke-width: 5; }
+        #minute { stroke: var(--text-color-primary); stroke-width: 3; }
+        #second { stroke: var(--accent-color); stroke-width: 1.5; } /* Gold second hand */
+        #hour, #minute, #second {
+            stroke-linecap: round;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); /* Subtle shadow */
+        }
+
+        /* Segment Arc */
+        #segmentArc {
+            fill: rgba(var(--accent-color-rgb), 0.25); /* Soft gold fill */
+            stroke: rgba(var(--accent-color-rgb), 0.5); /* Soft gold stroke */
+            stroke-width: 1;
+            /* Remove pulse and heavy glow */
+        }
+
+        /* Info and Controls Panel */
+        .info-controls {
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+            background: none; /* Remove panel background */
+            padding: 10px 0;
+            border: none;
+            box-shadow: none;
+        }
+
+        #segmentInfo {
+            color: var(--text-color-secondary); /* Muted color */
+            font-size: 16px;
+            font-weight: 400;
+            margin-top: 0;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            background: none; /* No background */
+            padding: 5px 10px;
+            border-radius: 0;
+            border: none;
+            display: block; /* Full width */
+            box-shadow: none;
+            text-shadow: none;
+        }
+         #segmentInfo .highlight { /* Class for highlighting parts */
+             color: var(--accent-color);
+             font-weight: 700;
+         }
+
+
+        /* Control Buttons Styling */
+        .control-button, #timezoneSelect, .custom-button {
+            cursor: pointer;
+            color: var(--text-color-secondary);
+            font-size: 14px;
+            margin: 8px 4px;
+            text-decoration: none;
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: var(--control-bg);
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            display: inline-block;
+            font-family: 'Lato', sans-serif;
+            font-weight: 400;
+            text-transform: none; /* No uppercase */
+            letter-spacing: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Very subtle shadow */
+        }
+
+        .control-button:hover, #timezoneSelect:hover, .custom-button:hover {
+            background-color: var(--control-hover-bg);
+            border-color: #555;
+            color: var(--text-color-primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transform: none; /* No lift */
+        }
+         .control-button:active, .custom-button:active {
+            background-color: #222; /* Slightly darker active state */
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+            transform: none;
+         }
+
+        #segmentOptions {
+            display: none;
+            margin-top: 5px;
+            background-color: var(--control-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 5px;
+            position: absolute; /* Keep positioning */
+            left: 50%;
+            transform: translateX(-50%);
+            width: max-content;
+            z-index: 100;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2); /* Standard dropdown shadow */
+            /* Remove fade animation for snappier feel */
+        }
+
+        #segmentOptions div {
+            padding: 8px 15px;
+            cursor: pointer;
+            color: var(--text-color-secondary);
+            border-radius: 3px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            font-size: 14px;
+            font-family: 'Lato', sans-serif;
+             text-transform: none;
+        }
+
+        #segmentOptions div:hover {
+            background-color: var(--control-hover-bg);
+            color: var(--text-color-primary);
+             text-shadow: none;
+        }
+
+        #timezoneSelect {
+            appearance: none;
+             /* Simple arrow using background gradient */
+            background-image: linear-gradient(45deg, transparent 50%, var(--text-color-secondary) 50%), linear-gradient(135deg, var(--text-color-secondary) 50%, transparent 50%);
+            background-position: calc(100% - 15px) center, calc(100% - 10px) center;
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+            padding-right: 30px;
+             color: var(--text-color-secondary);
+             font-family: 'Lato', sans-serif;
+        }
+         #timezoneSelect option {
+            background-color: var(--control-bg);
+            color: var(--text-color-primary);
+         }
+
+        /* Custom Countdown Panel Styling */
+        #customCountdownPanel {
+            margin-top: 30px;
+            padding: 20px 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--control-bg); /* Match control background */
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            text-align: center; /* Center align panel content */
+        }
+
+        #customCountdownPanel h3 {
+            margin: 0 0 18px 0;
+            color: var(--text-color-primary);
+            font-weight: 400; /* Lighter heading */
+            font-size: 18px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            display: block; /* Full width heading */
+            text-shadow: none;
+        }
+
+        #customTargetTime {
+            font-size: 15px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color); /* Slightly darker input background */
+            color: var(--text-color-primary);
+            font-family: 'Lato', sans-serif;
+            margin: 0 5px 10px 0; /* Adjust margin for layout */
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        #customTargetTime::-webkit-calendar-picker-indicator {
+            filter: invert(0.7); /* Grayish indicator */
+            cursor: pointer;
+             opacity: 0.7;
+        }
+
+        #customStartBtn {
+            /* Inherits from .control-button */
+             background-color: var(--accent-color); /* Gold button for action */
+             border-color: var(--accent-color);
+             color: #111; /* Dark text on gold */
+             font-weight: 700;
+        }
+         #customStartBtn:hover {
+             background-color: #e0b840; /* Lighter gold hover */
+             border-color: #e0b840;
+             color: #000;
+         }
+
+        #customCountdownDisplay {
+            margin-top: 15px;
+            font-size: 18px;
+            color: var(--text-color-primary); /* Primary text color */
+            font-weight: 400;
+            min-height: 25px;
+             font-family: 'Lato', sans-serif;
+            text-shadow: none;
+        }
+         #customCountdownDisplay .target-time {
+             font-weight: 300; /* Lighter weight for target time */
+             color: var(--text-color-secondary);
+             font-size: 14px;
+             margin-left: 8px;
+         }
+         #customCountdownDisplay .timeup-message {
+             color: var(--accent-color); /* Highlight time up message */
+             font-weight: 700;
+         }
+
+    </style>
 </head>
 <body>
+    <div class="clock-container">
+        <svg viewBox="0 0 500 500">
+            <circle id="clockFaceCircle" cx="250" cy="250" r="200"/>
+            <text id="digitalTime" x="250" y="180"></text>
+            <g id="ticks"></g>
+            <g id="numbers"></g>
+            <path id="segmentArc" /> <line id="hour" x1="250" y1="250" x2="250" y2="170"/>
+            <line id="minute" x1="250" y1="250" x2="250" y2="130"/>
+            <line id="second" x1="250" y1="250" x2="250" y2="110"/>
+        </svg>
+    </div>
 
-  <svg viewBox="0 0 500 500">
-    <text id="digitalTime" x="250" y="180" fill="white" font-size="32" font-family="Arial" text-anchor="middle" dominant-baseline="middle"></text>
-    <circle cx="250" cy="250" r="200" stroke="#444" stroke-width="10" fill="none"/>
-    <g id="ticks"></g>
-    <g id="numbers"></g>
-    <path id="segmentArc" fill="rgba(0, 255, 0, 0.2)" stroke="none"/>
-    <line id="hour" x1="250" y1="250" x2="250" y2="170" stroke="white" stroke-width="6" stroke-linecap="round"/>
-    <line id="minute" x1="250" y1="250" x2="250" y2="130" stroke="white" stroke-width="4" stroke-linecap="round"/>
-    <line id="second" x1="250" y1="250" x2="250" y2="110" stroke="red" stroke-width="2" stroke-linecap="round"/>
-  </svg>
+    <div class="info-controls">
+        <div id="segmentInfo">Loading segment info...</div>
+        <div>
+             <button id="timeFormatToggle" class="control-button">Switch to 24-Hour</button>
+             <button id="segmentMenuTrigger" class="control-button">Segment Mode</button>
+             <button id="soundToggle" class="control-button">🔊 Sound On</button>
+        </div>
+        <div style="position: relative;"> <div id="segmentOptions">
+                <div data-mode="24x60">24 × 60 Min</div>
+                <div data-mode="30x48">30 × 48 Min</div>
+                <div data-mode="48x30">48 × 30 Min</div>
+                <div data-mode="60x24">60 × 24 Min</div>
+                <div data-mode="72x20">72 × 20 Min</div>
+                <div data-mode="96x15">96 × 15 Min</div>
+             </div>
+        </div>
+         <select id="timezoneSelect" class="control-button"></select>
+    </div>
 
-  <div id="segmentInfo"></div>
-  <div id="timeFormatToggle">Switch to 24-Hour Format</div>
-  <div id="segmentMenuTrigger">Change Segment Mode</div>
-  <div id="soundToggle">🔊 Sound On</div>
-  <div id="segmentOptions">
-    <div data-mode="24x60">24×60 Minute</div>
-    <div data-mode="30x48">30×48 Minute</div>
-    <div data-mode="48x30">48×30 Minute</div>
-    <div data-mode="60x24">60×24 Minute</div>
-    <div data-mode="72x20">72×20 Minute</div>
-    <div data-mode="96x15">96×15 Minute</div>
-  </div>
-
-  <select id="timezoneSelect"></select>
+    <div id="customCountdownPanel">
+      <h3>Set Custom Alarm</h3> <input type="datetime-local" id="customTargetTime">
+      <button id="customStartBtn" class="custom-button control-button">Set Alarm</button> <div id="customCountdownDisplay"></div>
+    </div>
 
     <audio id="beep" src="alert.wav" preload="auto"></audio>
-    <audio id="alert2" src="alert2.wav" preload="auto"></audio> <!-- ✅ Ահա ճիշտ տեղը -->
+    <audio id="alert2" src="alert2.wav" preload="auto"></audio>
 
-<!-- Custom Countdown Panel -->
-<div id="customCountdownPanel" style="margin-top: 20px; text-align: center; color: white;">
-  <h3>My Alarm</h3>
-  <input type="datetime-local" id="customTargetTime" style="font-size:16px;">
-  
-  <button id="customStartBtn" style="font-size:16px; margin-left:10px;">Start</button>
-  <div id="customCountdownDisplay" style="margin-top:10px; font-size: 22px;"></div>
-</div>
+    <script>
+        // --- Get DOM Elements (Optimized) ---
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
 
+        const ticksContainer = $('#ticks');
+        const numbersContainer = $('#numbers');
+        const digitalTimeEl = $('#digitalTime');
+        const hourHand = $('#hour');
+        const minuteHand = $('#minute');
+        const secondHand = $('#second');
+        const segmentInfoEl = $('#segmentInfo');
+        const segmentArc = $('#segmentArc');
+        const segmentMenuTrigger = $('#segmentMenuTrigger');
+        const segmentOptionsContainer = $('#segmentOptions');
+        const segmentOptionDivs = $$('#segmentOptions div');
+        const timeFormatToggle = $('#timeFormatToggle');
+        const soundToggle = $('#soundToggle');
+        const timezoneSelect = $('#timezoneSelect');
+        const customTargetTimeInput = $('#customTargetTime');
+        const customStartBtn = $('#customStartBtn');
+        const customCountdownDisplay = $('#customCountdownDisplay');
+        const alert2Sound = $('#alert2');
+        // Removed clockFlashEl
 
+        const cx = 250, cy = 250, r = 200;
 
-  <script>
-    const ticks = document.getElementById('ticks');
-    const numbers = document.getElementById('numbers');
-    const cx = 250, cy = 250, r = 200;
+        // --- State Variables ---
+        let segmentMode = JSON.parse(localStorage.getItem('segmentMode')) || { parts: 30, length: 48, label: "30x48" };
+        let use24Hour = JSON.parse(localStorage.getItem('use24Hour')) || false;
+        let selectedZone = localStorage.getItem('timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let soundOn = JSON.parse(localStorage.getItem('soundOn')) ?? true;
+        let previousSegment = -1;
+        let customBoxTarget = null;
+        let customBoxActive = false;
+        let customBoxDone = false;
 
-    for (let i = 1; i <= 12; i++) {
-      const angle = (i * 30 - 90) * Math.PI / 180;
-      const x1 = cx + Math.cos(angle) * (r - 10);
-      const y1 = cy + Math.sin(angle) * (r - 10);
-      const x2 = cx + Math.cos(angle) * (r - 20);
-      const y2 = cy + Math.sin(angle) * (r - 20);
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", x1);
-      line.setAttribute("y1", y1);
-      line.setAttribute("x2", x2);
-      line.setAttribute("y2", y2);
-      line.setAttribute("class", "tick");
-      ticks.appendChild(line);
-      const tx = cx + Math.cos(angle) * (r - 35);
-      const ty = cy + Math.sin(angle) * (r - 35);
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", tx);
-      text.setAttribute("y", ty);
-      text.setAttribute("class", "label");
-      text.textContent = i;
-      numbers.appendChild(text);
-    }
+        // --- Initial Setup ---
+        function createSVGElement(tag, attributes) {
+            const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+            for (const key in attributes) {
+                el.setAttribute(key, attributes[key]);
+            }
+            return el;
+        }
 
-    let segmentMode = JSON.parse(localStorage.getItem('segmentMode')) || { parts: 30, length: 48, label: "30x48" };
-    let use24Hour = JSON.parse(localStorage.getItem('use24Hour')) || false;
-    let selectedZone = localStorage.getItem('timezone') || 'America/Los_Angeles';
-    let soundOn = JSON.parse(localStorage.getItem('soundOn')) ?? true;
+        // Draw Clock Markers
+        for (let i = 1; i <= 12; i++) {
+            const angleRad = (i * 30 - 90) * Math.PI / 180;
 
-    document.getElementById('segmentMenuTrigger').onclick = () => {
-      const opt = document.getElementById('segmentOptions');
-      opt.style.display = (opt.style.display === 'block') ? 'none' : 'block';
-    };
+            // Major ticks
+            const x1_maj = cx + Math.cos(angleRad) * r;
+            const y1_maj = cy + Math.sin(angleRad) * r;
+            const x2_maj = cx + Math.cos(angleRad) * (r - 12); // Adjusted length
+            const y2_maj = cy + Math.sin(angleRad) * (r - 12);
+            ticksContainer.appendChild(createSVGElement("line", { x1: x1_maj, y1: y1_maj, x2: x2_maj, y2: y2_maj, class: "tick major" }));
 
-    document.getElementById('timeFormatToggle').onclick = () => {
-      use24Hour = !use24Hour;
-      localStorage.setItem('use24Hour', JSON.stringify(use24Hour));
-      document.getElementById('timeFormatToggle').textContent = use24Hour ? 'Switch to AM/PM Format' : 'Switch to 24-Hour Format';
-    };
+            // Number Labels
+            const tx = cx + Math.cos(angleRad) * (r - 40); // Position labels closer to ticks
+            const ty = cy + Math.sin(angleRad) * (r - 40);
+            const text = createSVGElement("text", { x: tx, y: ty, class: "label" });
+            text.textContent = i;
+            // text.setAttribute("transform", `rotate(${i * 30} ${tx} ${ty})`); // Removed rotation
+            numbersContainer.appendChild(text);
+        }
+        // Minor ticks
+        for (let i = 0; i < 60; i++) {
+            if (i % 5 !== 0) {
+                const angleRad = (i * 6 - 90) * Math.PI / 180;
+                const x1_min = cx + Math.cos(angleRad) * r;
+                const y1_min = cy + Math.sin(angleRad) * r;
+                const x2_min = cx + Math.cos(angleRad) * (r - 6); // Shorter minor ticks
+                const y2_min = cy + Math.sin(angleRad) * (r - 6);
+                ticksContainer.appendChild(createSVGElement("line", { x1: x1_min, y1: y1_min, x2: x2_min, y2: y2_min, class: "tick" }));
+            }
+        }
 
-    document.getElementById('soundToggle').onclick = () => {
-      soundOn = !soundOn;
-      localStorage.setItem('soundOn', JSON.stringify(soundOn));
-      document.getElementById('soundToggle').textContent = soundOn ? '🔊 Sound On' : '🔇 Sound Off';
-    };
+        // Populate Timezone Select
+        try {
+            const timezones = Intl.supportedValuesOf('timeZone');
+            // Optional: Sort timezones for better usability
+            timezones.sort();
+            timezones.forEach(tz => {
+                const opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz.replace(/_/g, ' '); // Keep replacing underscores
+                timezoneSelect.appendChild(opt);
+            });
+            timezoneSelect.value = selectedZone;
+        } catch (e) { console.warn("Timezone list failed:", e); /* Handle error */ }
 
-    document.querySelectorAll('#segmentOptions div').forEach(el => {
-      el.onclick = () => {
-        const [p, l] = el.dataset.mode.split('x');
-        segmentMode = { parts: parseInt(p), length: parseInt(l), label: el.dataset.mode };
-        localStorage.setItem('segmentMode', JSON.stringify(segmentMode));
-        document.getElementById('segmentOptions').style.display = 'none';
-      };
-    });
+        // Set initial UI states
+        timeFormatToggle.textContent = use24Hour ? 'Use AM/PM' : 'Use 24-Hour'; // Adjusted text
+        soundToggle.textContent = soundOn ? '🔊 Sound On' : '🔇 Sound Off';
 
-    const tzSelect = document.getElementById('timezoneSelect');
-    Intl.supportedValuesOf('timeZone').forEach(tz => {
-      const opt = document.createElement('option');
-      opt.value = tz;
-      opt.textContent = tz;
-      tzSelect.appendChild(opt);
-    });
-    tzSelect.value = selectedZone;
-    tzSelect.onchange = () => {
-      selectedZone = tzSelect.value;
-      localStorage.setItem('timezone', selectedZone);
-    };
+        // --- Event Listeners ---
+        segmentMenuTrigger.onclick = (e) => {
+            e.stopPropagation();
+            segmentOptionsContainer.style.display = segmentOptionsContainer.style.display === 'block' ? 'none' : 'block';
+        };
 
-    let previousSegment = -1;
+        document.addEventListener('click', (e) => {
+            if (!segmentOptionsContainer.contains(e.target) && e.target !== segmentMenuTrigger && segmentOptionsContainer.style.display === 'block') {
+                segmentOptionsContainer.style.display = 'none';
+            }
+        });
 
-    function updateClock() {
-      const now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      const second = now.getSeconds();
+        timeFormatToggle.onclick = () => {
+            use24Hour = !use24Hour;
+            localStorage.setItem('use24Hour', JSON.stringify(use24Hour));
+            timeFormatToggle.textContent = use24Hour ? 'Use AM/PM' : 'Use 24-Hour';
+        };
 
-      const hourAngle = ((hour % 12) + minute / 60) * 30;
-      const minuteAngle = (minute + second / 60) * 6;
-      const secondAngle = second * 6;
+        soundToggle.onclick = () => {
+            soundOn = !soundOn;
+            localStorage.setItem('soundOn', JSON.stringify(soundOn));
+            soundToggle.textContent = soundOn ? '🔊 Sound On' : '🔇 Sound Off';
+            // Optional: Play a subtle confirmation sound if turning on
+            // if (soundOn) playAudio(alert2Sound, 0.05);
+        };
 
-      document.getElementById("hour").setAttribute("transform", `rotate(${hourAngle},250,250)`);
-      document.getElementById("minute").setAttribute("transform", `rotate(${minuteAngle},250,250)`);
-      document.getElementById("second").setAttribute("transform", `rotate(${secondAngle},250,250)`);
+        segmentOptionDivs.forEach(el => {
+            el.onclick = () => {
+                const [p, l] = el.dataset.mode.split('x');
+                segmentMode = { parts: parseInt(p), length: parseInt(l), label: el.dataset.mode };
+                localStorage.setItem('segmentMode', JSON.stringify(segmentMode));
+                segmentOptionsContainer.style.display = 'none';
+                previousSegment = -1;
+            };
+        });
 
-      const totalMinutes = hour * 60 + minute;
-      const { parts: totalSegments, length: segmentLength, label } = segmentMode;
-      const currentSegment = Math.floor(totalMinutes / segmentLength);
-      const remainingSegments = Math.max(0, totalSegments - currentSegment - 1);
+        timezoneSelect.onchange = () => {
+            selectedZone = timezoneSelect.value;
+            localStorage.setItem('timezone', selectedZone);
+            previousSegment = -1;
+        };
 
-      const secondsIntoSegment = (totalMinutes % segmentLength) * 60 + second;
-      const remainingSeconds = segmentLength * 60 - secondsIntoSegment;
-      const remH = Math.floor(remainingSeconds / 3600);
-      const remMin = Math.floor((remainingSeconds % 3600) / 60);
-      const remSec = remainingSeconds % 60;
+        if (customTargetTimeInput && customStartBtn) {
+            customTargetTimeInput.addEventListener('change', startCustomBoxCountdown);
+            customTargetTimeInput.addEventListener('keydown', (e) => e.key === 'Enter' && startCustomBoxCountdown());
+            customStartBtn.addEventListener('click', startCustomBoxCountdown);
+        } else { console.error("Countdown elements missing!"); }
 
-      const [origParts, origLength] = label.split('x');
-      const showHours = false;
+        // --- Core Functions ---
 
-      let timeDisplay = showHours
-        ? `${remH.toString().padStart(2,'0')}h : ${remMin.toString().padStart(2,'0')}m : ${remSec.toString().padStart(2,'0')}s`
-        : `${remMin.toString().padStart(2,'0')}m : ${remSec.toString().padStart(2,'0')}s`;
+        function updateClock() {
+            let now;
+            try {
+                now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+                if (isNaN(now)) throw new Error("Invalid date");
+            } catch (e) {
+                now = new Date();
+                segmentInfoEl.textContent = "Timezone Error";
+                console.error("Timezone error:", selectedZone, e);
+            }
 
-      document.getElementById("segmentInfo").textContent =
-        `${remainingSegments.toString().padStart(2, '0')} x ${origLength} (from ${label}) | ` + timeDisplay;
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const second = now.getSeconds();
+            const milliseconds = now.getMilliseconds(); // Keep for smooth second hand potentially
 
-        if (currentSegment !== previousSegment) {
-  if (soundOn && previousSegment !== -1 && Math.abs(currentSegment - previousSegment) === 1) {
-    const alert2 = document.getElementById("alert2");
-    alert2.pause();
-    alert2.currentTime = 0;
-    alert2.play();
-  }
-  previousSegment = currentSegment;
-}
+            // Analog Clock Update
+            const hourAngle = ((hour % 12 + minute / 60 + second / 3600) * 30);
+            const minuteAngle = ((minute + second / 60) * 6); // Remove ms from minute for less jitter
+            const secondAngle = ((second + milliseconds / 1000) * 6); // Keep ms for second hand smoothness
 
+            hourHand.setAttribute("transform", `rotate(${hourAngle} ${cx} ${cy})`);
+            minuteHand.setAttribute("transform", `rotate(${minuteAngle} ${cx} ${cy})`);
+            secondHand.setAttribute("transform", `rotate(${secondAngle} ${cx} ${cy})`);
 
+            // Digital Clock Update
+            let displayHour = hour;
+            let ampm = '';
+            if (!use24Hour) {
+                ampm = displayHour >= 12 ? 'PM' : 'AM';
+                displayHour = displayHour % 12 || 12;
+            }
+            digitalTimeEl.textContent = `${String(displayHour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${ampm}`.trim();
 
-      let displayHour = hour;
-      let ampm = '';
-      if (!use24Hour) {
-        ampm = displayHour >= 12 ? 'PM' : 'AM';
-        displayHour = displayHour % 12;
-        displayHour = displayHour === 0 ? 12 : displayHour;
-      }
+            // Segment Calculation & Display
+            const totalMinutes = hour * 60 + minute;
+            const { parts: totalSegments, length: segmentLength, label } = segmentMode;
+            const segmentDurationSeconds = segmentLength * 60;
+            const currentSegmentIndex = Math.floor(totalMinutes / segmentLength);
+            const secondsIntoDay = totalMinutes * 60 + second;
+            const segmentStartSecond = currentSegmentIndex * segmentDurationSeconds;
+            const secondsIntoSegment = secondsIntoDay - segmentStartSecond;
+            const remainingSecondsInSegment = Math.max(0, segmentDurationSeconds - secondsIntoSegment);
+            const remMin = Math.floor(remainingSecondsInSegment / 60);
+            const remSec = Math.floor(remainingSecondsInSegment % 60);
 
-      const fullHour = displayHour.toString().padStart(2, '0');
-      const fullMin = minute.toString().padStart(2, '0');
-      updateCustomBoxCountdown(now);
+            // Segment Arc Visualization
+            const segmentAngleSize = 360 / totalSegments;
+            const startAngle = (currentSegmentIndex * segmentAngleSize) - 90;
+            const endAngle = startAngle + segmentAngleSize;
+            drawArc(cx, cy, r - 2, startAngle, endAngle, segmentArc); // Draw arc just inside main circle
 
+            // Segment Info Text - Using highlights
+            const currentSegmentNumber = currentSegmentIndex + 1;
+            segmentInfoEl.innerHTML =
+                `Segment <span class="highlight">${currentSegmentNumber}/${totalSegments}</span> (${label}) | Time left: <span class="highlight">${String(remMin).padStart(2, '0')}m ${String(remSec).padStart(2, '0')}s</span>`;
 
-      document.getElementById("digitalTime").textContent = `${fullHour}:${fullMin} ${ampm}`.trim();
-    }
+            // Segment Change Sound (No visual flash)
+            if (currentSegmentIndex !== previousSegment) {
+                if (soundOn && previousSegment !== -1) {
+                    playAudio(alert2Sound, 0.5); // Play sound at moderate volume
+                }
+                previousSegment = currentSegmentIndex;
+            }
 
-    document.addEventListener("DOMContentLoaded", function () {
-  const input = document.getElementById('customTargetTime');
-  const startBtn = document.getElementById('customStartBtn');
-  input.addEventListener('change', function () {
-  startCustomBoxCountdown();  // ✅ Սկսի հետհաշվարկ հենց ընտրում ես ժամ
-});
+            // Update Custom Countdown
+            updateCustomBoxCountdown(now);
 
-  if (input && startBtn) {
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        startCustomBoxCountdown();
-      }
-    });
+            requestAnimationFrame(updateClock); // Loop
+        }
 
-    input.addEventListener('change', function () {
-      startCustomBoxCountdown();  // ✅ Երբ ընտրում ես ժամ, ավտոմատ սկսի
-    });
+        function startCustomBoxCountdown() {
+            const val = customTargetTimeInput.value.trim();
+            if (!val) {
+                customCountdownDisplay.textContent = "Please select date and time.";
+                customBoxActive = false; // Ensure countdown stops if invalid
+                return;
+            }
+            let targetDate = new Date(val);
+            if (isNaN(targetDate)) {
+                customCountdownDisplay.textContent = "Invalid date/time format.";
+                 customBoxActive = false;
+                return;
+            }
 
-    startBtn.addEventListener('click', startCustomBoxCountdown);
-  }
+            let now;
+            try {
+                now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+            } catch(e){ now = new Date(); }
 
-  setInterval(updateClock, 1000);
-  updateClock();
+            // Check if target date is reasonably in the future
+            if (targetDate < now) {
+                // Allow setting alarms for the past few seconds (e.g., if selection took time)
+                // But warn if significantly in the past
+                if (now - targetDate > 60000) { // More than 1 minute ago
+                     console.warn("Selected target time is in the past.");
+                     customCountdownDisplay.textContent = "Warning: Target time is past.";
+                }
+                 // Do not automatically advance the date in business style - user sets explicitly
+            }
 
-});
-
-
-
-
-    
-
-    let customBoxTarget = null;
-let customBoxActive = false;
-let customBoxDone = false;
-
-function startCustomBoxCountdown() {
-  const val = document.getElementById('customTargetTime').value.trim();
-  if (!val) return;
-
-  let targetDate;
-  const now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
-
-  if (val.includes(':')) {
-    // Փորձում ենք datetime-local input-ը ուղղակի Date ձևափոխել
-targetDate = new Date(val);
-if (isNaN(targetDate)) return;
-if (targetDate < now) {
-  targetDate.setDate(targetDate.getDate() + 1);
-}
-
-    // Եթե նշված ժամը արդեն անցել է՝ վերցնենք հաջորդ օրը
-    if (targetDate < now) {
-      targetDate.setDate(targetDate.getDate() + 1);
-    }
-  } else {
-    // fallback: փորձել ISO date-ի ձևով
-    targetDate = new Date(val);
-    if (isNaN(targetDate)) return;
-  }
-
-  customBoxTarget = targetDate;
-  customBoxActive = true;
-  customBoxDone = false;
-}
-
-
-
-function updateCustomBoxCountdown(now) {
-  if (!customBoxActive || !customBoxTarget) return;
-
-  const diff = customBoxTarget - now;
-  const display = document.getElementById('customCountdownDisplay');
-
-  if (diff <= 0) {
-    display.textContent = "✅ Time's up!";
-
-    // Ստուգում ենք՝ արդյո՞ք ձայնը պետք է միանա ԵՎ արդյո՞ք այն արդեն միացել է այս անգամ
-    if (!customBoxDone && soundOn) {
-      const alert2 = document.getElementById("alert2");
-      if (alert2) { // Ավելացնում ենք ստուգում, որ էլեմենտը գոյություն ունի
-          alert2.pause();
-          alert2.currentTime = 0;
-          alert2.play().catch(error => {
-              console.error("Ձայնի միացման սխալ:", error);
-              // Օգտատիրոջը կարելի է ցույց տալ հաղորդագրություն,
-              // որ ձայնը չի կարող միանալ առանց նրա գործողության (օրինակ՝ քլիքի)։
-          });
-          customBoxDone = true; // Նշում ենք, որ ձայնը միացել է այս հետհաշվարկի համար
-      } else {
-           console.error("alert2 audio element not found!");
-      }
-    }
-    // customBoxDone = false; // <- ՀԵՌԱՑՆԵԼ ԱՅՍ ՏՈՂԸ
-    customBoxActive = false; // <- ՓՈԽԵԼ true-ն false-ով, որ հետհաշվարկը կանգնի
-    return; // Կարիք չկա շարունակելու ֆունկցիան
-  }
-
-
-
-  if (diff > 0) {
-    const mins = Math.floor(diff / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    display.textContent = `Remaining ${mins.toString().padStart(2, '0')}m : ${secs.toString().padStart(2, '0')}s`;
-  }
-  if (customBoxTarget) {
-  const hrs24 = customBoxTarget.getHours().toString().padStart(2, '0');
-  const mns = customBoxTarget.getMinutes().toString().padStart(2, '0');
-
-  if (use24Hour) {
-    display.textContent += ` (${hrs24}:${mns})`;
-  } else {
-    let hrs12 = customBoxTarget.getHours() % 12;
-    hrs12 = hrs12 === 0 ? 12 : hrs12;
-    const ampm = customBoxTarget.getHours() >= 12 ? 'PM' : 'AM';
-    display.textContent += ` (${hrs12.toString().padStart(2, '0')}:${mns} ${ampm})`;
-  }
-}
+            customBoxTarget = targetDate;
+            customBoxActive = true;
+            customBoxDone = false;
+            console.log("Alarm set for:", customBoxTarget.toLocaleString("en-US", { timeZone: selectedZone }));
+            updateCustomBoxCountdown(now);
+        }
 
 
+        function updateCustomBoxCountdown(now) {
+            if (!customBoxActive || !customBoxTarget) return;
+
+            const diff = customBoxTarget - now;
+            let targetTimeString = "";
+            try {
+                const opts = use24Hour ? { hour12: false } : { hour12: true };
+                targetTimeString = customBoxTarget.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', ...opts, timeZone: selectedZone });
+                // Optional: Add date if target is not today
+                const targetDateStr = customBoxTarget.toLocaleDateString();
+                const nowDateStr = now.toLocaleDateString();
+                if (targetDateStr !== nowDateStr) {
+                     targetTimeString += ` on ${targetDateStr}`;
+                }
+
+            } catch(e){ targetTimeString = "Invalid Target"; }
+
+            if (diff <= 0) {
+                customCountdownDisplay.innerHTML = `<span class="timeup-message">Time's up!</span> <span class="target-time">(${targetTimeString})</span>`;
+                if (!customBoxDone && soundOn) {
+                    playAudio(alert2Sound, 0.8); // Alarm sound
+                    customBoxDone = true;
+                }
+                customBoxActive = false; // Stop countdown updates, keep message displayed
+            } else {
+                const totalSeconds = Math.floor(diff / 1000);
+                const days = Math.floor(totalSeconds / 86400);
+                const hours = Math.floor((totalSeconds % 86400) / 3600);
+                const mins = Math.floor((totalSeconds % 3600) / 60);
+                const secs = totalSeconds % 60;
+
+                let remainingStr = "Remaining: ";
+                if (days > 0) remainingStr += `${days}d `;
+                if (hours > 0 || days > 0) remainingStr += `${String(hours).padStart(2, '0')}h `;
+                remainingStr += `${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+                customCountdownDisplay.innerHTML = `${remainingStr} <span class="target-time">(Target: ${targetTimeString})</span>`;
+            }
+        }
+
+        function playAudio(audioElement, volume = 1.0) {
+            if (!audioElement) return;
+            audioElement.currentTime = 0;
+            audioElement.volume = volume;
+            audioElement.play().catch(error => {
+                console.error("Audio playback failed:", error);
+                soundToggle.textContent = "🔇 Error"; // Simple error indication
+                setTimeout(() => { soundToggle.textContent = soundOn ? '🔊 Sound On' : '🔇 Sound Off'; }, 2000);
+            });
+        }
+
+        function polarToCartesian(cx, cy, r, angleDeg) {
+            const angleRad = angleDeg * Math.PI / 180.0;
+            return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) };
+        }
+
+        function drawArc(x, y, radius, startAngle, endAngle, arcElement) {
+            // Ensure angles are within reasonable bounds if needed, though SVG handles large angles
+            const start = polarToCartesian(x, y, radius, endAngle);
+            const end = polarToCartesian(x, y, radius, startAngle);
+            const angleDiff = endAngle - startAngle;
+            const largeArcFlag = Math.abs(angleDiff) > 180 ? "1" : "0";
+            const sweepFlag = "1"; // Draw arc clockwise
+
+            if (Math.abs(angleDiff) < 0.01) {
+                arcElement.setAttribute("d", ""); return; // No zero-length arc
+            }
+             if (Math.abs(angleDiff) >= 359.99) { // Handle full circle case if needed
+                 // Could draw a full circle path instead, but fill usually covers this.
+                 // For arc path, make it almost full
+                  endAngle = startAngle + 359.9; // or startAngle - 359.9
+                  // Recalculate start point for nearly full circle
+                  const adjustedStart = polarToCartesian(x,y,radius, endAngle);
+                   const d_full = `M ${adjustedStart.x} ${adjustedStart.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y} L ${x} ${y} Z`;
+                    arcElement.setAttribute("d", d_full);
+                 return
+             }
 
 
-}
+            const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y} L ${x} ${y} Z`;
+            arcElement.setAttribute("d", d);
+        }
 
+        // --- Start ---
+         document.addEventListener("DOMContentLoaded", () => {
+             requestAnimationFrame(updateClock); // Start the loop
+         });
 
-  </script>
-
-
+    </script>
 
 </body>
 </html>
