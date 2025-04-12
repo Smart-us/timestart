@@ -536,12 +536,15 @@
             //drawArc(cx, cy, r - 2, startAngle, endAngle, segmentArc); //ժամային գոտինա ցույց տալիս
 
             // Segment Info Text - Using highlights
-            const remainingSegmentNumber = totalSegments - currentSegmentIndex;
+            const segmentsRemainingAfterThis = totalSegments - currentSegmentIndex - 1;
+const currentSegmentText = segmentsRemainingAfterThis > 0
+    ? `${segmentsRemainingAfterThis} × ${segmentLength} `
+    : `1 ongoing`;
 
-            segmentInfoEl.innerHTML =
-             `<span class="highlight">${remainingSegmentNumber} × ${segmentLength}</span>
-                <span style="opacity: 0.6; font-size: 20px; font-weight: 400; margin-left: 6px;">(${label})</span> |
-            Time left: <span class="highlight">${String(remMin).padStart(2, '0')}m ${String(remSec).padStart(2, '0')}s</span>`;
+segmentInfoEl.innerHTML =
+ `<span class="highlight">${currentSegmentText}</span>
+  <span style="opacity: 0.6; font-size: 20px; font-weight: 400; margin-left: 6px;">(${label})</span> |
+  Time left: <span class="highlight">${String(remMin).padStart(2, '0')}m ${String(remSec).padStart(2, '0')}s</span>`;
 
             // Segment Change Sound (No visual flash)
             if (currentSegmentIndex !== previousSegment) {
