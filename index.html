@@ -295,6 +295,45 @@
              color: var(--accent-color); /* Highlight time up message */
              font-weight: 700;
          }
+         .customTargetTime::-webkit-calendar-picker-indicator {
+  filter: invert(0.7); /* Գույնը վերածում ա վառի */
+  cursor: pointer;
+  opacity: 0.7;
+}
+.customStartBtn {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #111;
+    font-weight: 700;
+}
+.customStartBtn:hover {
+    background-color: #e0b840;
+    border-color: #e0b840;
+    color: #000;
+}
+.customCountdownDisplay .target-time {
+    font-weight: 300;
+    color: var(--text-color-secondary);
+    font-size: 14px;
+    margin-left: 8px;
+}
+body {
+    margin: 0;
+    padding: 0;
+    padding-bottom: 60px; /* ✅ Ավելացված */
+    background-color: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    flex-direction: column;
+    font-family: 'Poppins', Arial;
+    color: var(--text-color-primary);
+    box-sizing: border-box;
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
 
     </style>
 </head>
@@ -331,14 +370,42 @@
     </div>
 
     <div id="customCountdownPanel">
-      <h3>Set Custom Alarm</h3> <input type="datetime-local" id="customTargetTime">
+        <h3 style="position: relative; text-align: center;">
+            Set Custom Alarm
+            <img id="refreshBtn" src="refresh.svg" alt="Refresh" width="22" height="22"
+                 style="position: absolute; right: 45px; top: 35%; transform: translateY(-50%); cursor: pointer;">
+          
+            <img id="addAlarmBtn" src="add.svg" alt="Add" width="24" height="24"
+                 style="position: absolute; right: 8px; top: 35%; transform: translateY(-50%); cursor: pointer;">
+          </h3>
+          
+          <input type="datetime-local" id="customTargetTime">
       <button id="customStartBtn" class="custom-button control-button">Set Alarm</button> <div id="customCountdownDisplay"></div>
     </div>
 
     <audio id="beep" src="alert.wav" preload="auto"></audio>
     <audio id="alert2" src="alert2.wav" preload="auto"></audio>
 
+    <!-- Timer Popup (Hidden by default) -->
+<div id="timerPopup" style="display: none; position: absolute; top: 50%; left: 50%;
+transform: translate(-50%, -50%);
+background: #222; padding: 20px; border-radius: 10px;
+box-shadow: 0 5px 15px rgba(0,0,0,0.5); color: white; text-align: center; z-index: 999;">
+<div style="margin-bottom: 10px;">
+  <label>Ժամ:</label>
+
+  <label>Րոպե:</label>
+  <select id="minutes">
+    ${Array.from({ length: 60 }, (_, i) => `<option value="${i}">${i}</option>`).join("")}
+  </select>
+</div>
+<button id="startTimer" class="control-button">Սկսել հետհաշվարկը</button>
+</div>
+
+
     <script>
+        let alarmPanels = JSON.parse(localStorage.getItem("multiAlarms") || "[]");
+
         // --- Get DOM Elements (Optimized) ---
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
@@ -480,6 +547,38 @@
             customTargetTimeInput.addEventListener('keydown', (e) => e.key === 'Enter' && startCustomBoxCountdown());
             customStartBtn.addEventListener('click', startCustomBoxCountdown);
         } else { console.error("Countdown elements missing!"); }
+        customTargetTimeInput.addEventListener('focus', () => {
+    try {
+        const now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+        const isoNow = now.toISOString().slice(0, 16);
+        customTargetTimeInput.value = isoNow;
+    } catch (e) {
+        console.warn("Failed to set current time to input", e);
+    }
+});
+
+
+        function restoreSavedAlarm() {
+    const saved = JSON.parse(localStorage.getItem('savedAlarm'));
+    if (!saved) return;
+
+    try {
+        const savedTarget = new Date(saved.target);
+        const savedZone = saved.zone || selectedZone;
+
+        customBoxTarget = savedTarget;
+        customBoxActive = true;
+        customBoxDone = false;
+        selectedZone = savedZone;
+
+        timezoneSelect.value = savedZone;
+        customTargetTimeInput.value = savedTarget.toISOString().slice(0, 16);
+
+        console.log("Restored saved alarm:", savedTarget);
+    } catch (e) {
+        console.warn("Failed to restore saved alarm", e);
+    }
+}
 
         // --- Core Functions ---
 
@@ -560,42 +659,43 @@ segmentInfoEl.innerHTML =
             requestAnimationFrame(updateClock); // Loop
         }
 
+        
+
         function startCustomBoxCountdown() {
-            const val = customTargetTimeInput.value.trim();
-            if (!val) {
-                customCountdownDisplay.textContent = "Please select date and time.";
-                customBoxActive = false; // Ensure countdown stops if invalid
-                return;
-            }
-            let targetDate = new Date(val);
-            if (isNaN(targetDate)) {
-                customCountdownDisplay.textContent = "Invalid date/time format.";
-                 customBoxActive = false;
-                return;
-            }
+    const val = customTargetTimeInput.value.trim();
+    if (!val) {
+        customCountdownDisplay.textContent = "Please select date and time.";
+        customBoxActive = false;
+        return;
+    }
 
-            let now;
-            try {
-                now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
-            } catch(e){ now = new Date(); }
+    let targetDate = new Date(val);
+    if (isNaN(targetDate)) {
+        customCountdownDisplay.textContent = "Invalid date/time format.";
+        customBoxActive = false;
+        return;
+    }
 
-            // Check if target date is reasonably in the future
-            if (targetDate < now) {
-                // Allow setting alarms for the past few seconds (e.g., if selection took time)
-                // But warn if significantly in the past
-                if (now - targetDate > 60000) { // More than 1 minute ago
-                     console.warn("Selected target time is in the past.");
-                     customCountdownDisplay.textContent = "Warning: Target time is past.";
-                }
-                 // Do not automatically advance the date in business style - user sets explicitly
-            }
+    let now;
+    try {
+        now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+    } catch(e){ now = new Date(); }
 
-            customBoxTarget = targetDate;
-            customBoxActive = true;
-            customBoxDone = false;
-            console.log("Alarm set for:", customBoxTarget.toLocaleString("en-US", { timeZone: selectedZone }));
-            updateCustomBoxCountdown(now);
-        }
+    if (targetDate < now && now - targetDate > 60000) {
+        console.warn("Selected target time is in the past.");
+        customCountdownDisplay.textContent = "Warning: Target time is past.";
+    }
+
+    // ✅ Այստեղ ճիշտ տեղն է պահելու և ակտիվացնելու
+    customBoxTarget = targetDate;
+    customBoxActive = true;
+    customBoxDone = false;
+    localStorage.setItem('savedAlarm', JSON.stringify({ target: customBoxTarget.toISOString(), zone: selectedZone }));
+
+    console.log("Alarm set for:", customBoxTarget.toLocaleString("en-US", { timeZone: selectedZone }));
+    updateCustomBoxCountdown(now);
+}
+
 
 
         function updateCustomBoxCountdown(now) {
@@ -681,21 +781,211 @@ segmentInfoEl.innerHTML =
         }
 
         // --- Start ---
-         document.addEventListener("DOMContentLoaded", () => {
-             requestAnimationFrame(updateClock); // Start the loop
-         });
+        document.addEventListener("DOMContentLoaded", () => {
+            
+    restoreSavedAlarm(); // ⏰ Ավելացված
+    alarmPanels.forEach(data => createAlarmPanel(data));
+
+    requestAnimationFrame(updateClock);
+});
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  // Մաքրում ենք input դաշտը
+  customTargetTimeInput.value = '';
+
+  // Մաքրում ենք countdown ցուցադրումը
+  customCountdownDisplay.textContent = '';
+
+  // Անջատում ենք ընթացիկ զարթուցիչը
+  customBoxActive = false;
+  customBoxDone = false;
+  customBoxTarget = null;
+
+  // Ջնջում ենք պահպանված տվյալը storage-ից
+  localStorage.removeItem('savedAlarm');
+
+  console.log("Alarm reset to initial state.");
+});
+
+<!-- ✅ Ավելացրու սա -->
+
+  const addAlarmBtn = document.getElementById('addAlarmBtn');
+  function saveAlarms() {
+  localStorage.setItem("multiAlarms", JSON.stringify(alarmPanels));
+}
+
+  function createAlarmPanel(savedData = null) {
+  const newPanel = document.createElement("div");
+  newPanel.className = "custom-alarm-panel";
+  newPanel.style.cssText = `
+    margin-top: 25px;
+    padding: 20px 25px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--control-bg);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    text-align: center;
+  `;
+
+  const alarmId = savedData?.id || Date.now();
+
+  newPanel.innerHTML = `
+  <h3 style="
+  position: relative;
+  text-align: center;
+  margin: 0 0 18px 0;
+  color: var(--text-color-primary);
+  font-weight: 400;
+  font-size: 18px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+  display: block;
+  text-shadow: none;
+">
+
+    Set Custom Alarm
+    <img src="refresh.svg" alt="Refresh" class="refresh-btn"
+         style="position: absolute; right: 45px; top: 35%; transform: translateY(-50%); cursor: pointer;" />
+    <img src="delete.svg" alt="Delete" class="delete-btn"
+         style="position: absolute; right: 8px; top: 35%; transform: translateY(-50%); cursor: pointer;" />
+  </h3>
+  <input type="datetime-local" class="customTargetTime" style="
+    font-size: 15px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-color-primary);
+    font-family: 'Lato', sans-serif;
+    margin: 0 5px 10px 0;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  " value="${savedData?.target || ''}">
+  <button class="customStartBtn custom-button control-button">Set Alarm</button>
+  <div class="customCountdownDisplay" style="
+    margin-top: 15px;
+    font-size: 18px;
+    color: var(--text-color-primary);
+    font-weight: 400;
+    min-height: 25px;
+    font-family: 'Lato', sans-serif;
+    text-shadow: none;
+  "></div>
+`;
+
+
+  const input = newPanel.querySelector(".customTargetTime");
+  const btn = newPanel.querySelector(".customStartBtn");
+  const display = newPanel.querySelector(".customCountdownDisplay");
+
+  let active = false, done = false;
+  let target = savedData?.target ? new Date(savedData.target) : null;
+
+  function updateCountdown() {
+    if (!active || !target) return;
+
+    const now = new Date();
+    const diff = target - now;
+
+    if (diff <= 0) {
+      display.innerHTML = `<span class="timeup-message">Time's up!</span>`;
+      if (!done && soundOn) playAudio(alert2Sound, 0.8);
+      active = false;
+      done = true;
+    } else {
+      const s = Math.floor(diff / 1000);
+      const d = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+
+      let txt = "Remaining: ";
+      if (d > 0) txt += `${d}d `;
+      if (h > 0 || d > 0) txt += `${String(h).padStart(2, '0')}h `;
+      txt += `${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`;
+      let targetTimeStr = target.toLocaleTimeString("en-US", {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: !use24Hour,
+});
+
+txt += ` <span class="target-time">(Target: ${targetTimeStr})</span>`;
+display.innerHTML = txt;
+
+    }
+
+    if (active) requestAnimationFrame(updateCountdown);
+  }
+
+  function startLocalCountdown() {
+    const val = input.value;
+    if (!val) return display.textContent = 'Please select time';
+
+    const t = new Date(val);
+    if (isNaN(t)) return display.textContent = 'Invalid time';
+
+    target = t;
+    active = true;
+    done = false;
+
+    alarmPanels = alarmPanels.filter((a) => a.id !== alarmId); // Remove previous
+    alarmPanels.push({ id: alarmId, target: t.toISOString() });
+    saveAlarms();
+
+    updateCountdown();
+  }
+
+  btn.addEventListener("click", startLocalCountdown);
+  input.addEventListener("keydown", e => e.key === 'Enter' && startLocalCountdown());
+
+  newPanel.querySelector(".refresh-btn").addEventListener("click", () => {
+    input.value = '';
+    display.textContent = '';
+    active = false;
+    done = false;
+    target = null;
+    alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
+    saveAlarms();
+  });
+
+  newPanel.querySelector(".delete-btn").addEventListener("click", () => {
+    newPanel.remove();
+    alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
+    saveAlarms();
+  });
+
+  document.body.appendChild(newPanel);
+
+  if (savedData?.target) {
+    active = true;
+    updateCountdown();
+  }
+}
+
+// ✅ Միացնում ենք addAlarm կոճակը
+document.getElementById("addAlarmBtn").addEventListener("click", () => {
+  createAlarmPanel();
+});
+
+
+
          
          document.addEventListener("click", (e) => {
   const clickedEl = e.target;
 
   // Բացառում ենք input, button, select, dropdown panel-ները
   if (
-    clickedEl.closest("button") ||
-    clickedEl.closest("input") ||
-    clickedEl.closest("select") ||
-    clickedEl.closest("#customCountdownPanel") ||
-    clickedEl.closest(".info-controls")
-  ) return;
+  clickedEl.closest("button") ||
+  clickedEl.closest("input") ||
+  clickedEl.closest("select") ||
+  clickedEl.closest("#customCountdownPanel") ||
+  clickedEl.closest(".info-controls") ||
+  clickedEl.closest(".refresh-btn") ||
+  clickedEl.closest(".delete-btn") ||
+  clickedEl.classList.contains("refresh-btn") ||
+  clickedEl.classList.contains("delete-btn")
+) return;
+
 
   // Եթե fullscreen-ում ա, դուրս գա, եթե ոչ՝ մտնի
   if (!document.fullscreenElement) {
