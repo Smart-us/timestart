@@ -528,12 +528,13 @@
             const segmentAngleSize = 360 / totalSegments;
             const startAngle = (currentSegmentIndex * segmentAngleSize) - 90;
             const endAngle = startAngle + segmentAngleSize;
-            drawArc(cx, cy, r - 2, startAngle, endAngle, segmentArc); // Draw arc just inside main circle
+            //drawArc(cx, cy, r - 2, startAngle, endAngle, segmentArc); //ժամային գոտինա ցույց տալիս
 
             // Segment Info Text - Using highlights
-            const currentSegmentNumber = currentSegmentIndex + 1;
+            const remainingSegmentNumber = totalSegments - currentSegmentIndex;
+
             segmentInfoEl.innerHTML =
-                `Segment <span class="highlight">${currentSegmentNumber}/${totalSegments}</span> (${label}) | Time left: <span class="highlight">${String(remMin).padStart(2, '0')}m ${String(remSec).padStart(2, '0')}s</span>`;
+  `<span class="highlight">${remainingSegmentNumber} × ${segmentLength}</span> | Time left: <span class="highlight">${String(remMin).padStart(2, '0')}m ${String(remSec).padStart(2, '0')}s</span>`;
 
             // Segment Change Sound (No visual flash)
             if (currentSegmentIndex !== previousSegment) {
