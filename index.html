@@ -681,13 +681,33 @@
          document.addEventListener("DOMContentLoaded", () => {
              requestAnimationFrame(updateClock); // Start the loop
          });
-         document.addEventListener("click", () => {
+         
+         document.addEventListener("click", (e) => {
+  const clickedEl = e.target;
+
+  // Բացառում ենք input, button, select, dropdown panel-ները
+  if (
+    clickedEl.closest("button") ||
+    clickedEl.closest("input") ||
+    clickedEl.closest("select") ||
+    clickedEl.closest("#customCountdownPanel") ||
+    clickedEl.closest(".info-controls")
+  ) return;
+
+  // Եթե fullscreen-ում ա, դուրս գա, եթե ոչ՝ մտնի
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen?.();
+    const docEl = document.documentElement;
+    if (docEl.requestFullscreen) docEl.requestFullscreen();
+    else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+    else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
   } else {
-    document.exitFullscreen?.();
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
   }
 });
+
+
 
     </script>
 
