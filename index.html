@@ -333,6 +333,14 @@ body {
     overflow-x: hidden;
     max-width: 100vw;
 }
+body {
+  overflow: auto;            /* թուլացնում ես սքրոլը */
+  scrollbar-width: none;     /* Firefox-ի համար */
+}
+
+body::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari և այլն */
+}
 
 
     </style>
@@ -565,36 +573,28 @@ box-shadow: 0 5px 15px rgba(0,0,0,0.5); color: white; text-align: center; z-inde
 
 
 
-function restoreSavedAlarm() {
-  const saved = JSON.parse(localStorage.getItem('savedAlarm'));
+        function restoreSavedAlarm() {
+            
+    const saved = JSON.parse(localStorage.getItem('savedAlarm'));
+    
+    if (!saved) return;
 
-  if (saved && saved.target) {
     try {
-      const savedTarget = new Date(saved.target);
-      const savedZone = saved.zone || selectedZone;
+        const savedTarget = new Date(saved.target);
+        const savedZone = saved.zone || selectedZone;
 
-      customBoxTarget = savedTarget;
-      customBoxActive = true;
-      customBoxDone = false;
-      selectedZone = savedZone;
+        customBoxTarget = savedTarget;
+        customBoxActive = true;
+        customBoxDone = false;
+        selectedZone = savedZone;
 
-      timezoneSelect.value = savedZone;
-      customTargetTimeInput.value = savedTarget.toISOString().slice(0, 16);
+        timezoneSelect.value = savedZone;
+        customTargetTimeInput.value = savedTarget.toISOString().slice(0, 16);
 
-      console.log("Restored saved alarm:", savedTarget);
-      return;
+        console.log("Restored saved alarm:", savedTarget);
     } catch (e) {
-      console.warn("Failed to restore saved alarm", e);
+        console.warn("Failed to restore saved alarm", e);
     }
-  }
-
-  // ✅ Եթե savedAlarm չկար, կամ դատարկ էր — լռելայն՝ հիմա
-  try {
-  const tzNow = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
-  customTargetTimeInput.value = tzNow.toISOString().slice(0, 16);
-} catch (e) {
-  console.warn("Failed to set default alarm time", e);
-}
 }
 
         // --- Core Functions ---
@@ -813,7 +813,6 @@ customTargetTimeInput.addEventListener("focus", () => {
 });
   
     restoreSavedAlarm(); // ⏰ Ավելացված
-    
     alarmPanels.forEach(data => createAlarmPanel(data));
 
     requestAnimationFrame(updateClock);
@@ -975,36 +974,21 @@ display.innerHTML = txt;
   btn.addEventListener("click", startLocalCountdown);
   input.addEventListener("keydown", e => e.key === 'Enter' && startLocalCountdown());
 
+  newPanel.querySelector(".refresh-btn").addEventListener("click", () => {
+    input.value = '';
+    display.textContent = '';
+    active = false;
+    done = false;
+    target = null;
+    alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
+    saveAlarms();
+  });
+
   newPanel.querySelector(".delete-btn").addEventListener("click", () => {
-  newPanel.remove();
-  alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
-  delete alarmTitles[alarmId];
-  saveAlarms();
-  localStorage.setItem("alarmTitles", JSON.stringify(alarmTitles));
-});
-
-newPanel.querySelector(".refresh-btn").addEventListener("click", () => {
-  const titleEl = newPanel.querySelector(".alarm-title");
-  const title = titleEl.textContent.trim();
-  const hasTime = !!input.value;
-
-  input.value = '';
-  display.textContent = '';
-  active = false;
-  done = false;
-  target = null;
-
-  if (!title && !hasTime) {
     newPanel.remove();
     alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
-  } else {
-    alarmPanels = alarmPanels.map(a => a.id === alarmId ? { ...a, target: "" } : a);
-  }
-
-  saveAlarms();
-});
-
-
+    saveAlarms();
+  });
 
   document.body.appendChild(newPanel);
 
