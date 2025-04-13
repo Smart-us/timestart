@@ -371,7 +371,8 @@ body {
 
     <div id="customCountdownPanel">
         <h3 style="position: relative; text-align: center;">
-            Set Custom Alarm
+            <span id="mainAlarmTitle" contenteditable="true" style="outline: none;">Set Custom Alarm</span>
+        
             <img id="refreshBtn" src="refresh.svg" alt="Refresh" width="22" height="22"
                  style="position: absolute; right: 45px; top: 35%; transform: translateY(-50%); cursor: pointer;">
           
@@ -405,6 +406,8 @@ box-shadow: 0 5px 15px rgba(0,0,0,0.5); color: white; text-align: center; z-inde
 
     <script>
         let alarmPanels = JSON.parse(localStorage.getItem("multiAlarms") || "[]");
+        let alarmTitles = JSON.parse(localStorage.getItem("alarmTitles") || "{}");
+
 
         // --- Get DOM Elements (Optimized) ---
         const $ = (selector) => document.querySelector(selector);
@@ -548,36 +551,50 @@ box-shadow: 0 5px 15px rgba(0,0,0,0.5); color: white; text-align: center; z-inde
             customStartBtn.addEventListener('click', startCustomBoxCountdown);
         } else { console.error("Countdown elements missing!"); }
         customTargetTimeInput.addEventListener('focus', () => {
-    try {
-        const now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
-        const isoNow = now.toISOString().slice(0, 16);
-        customTargetTimeInput.value = isoNow;
-    } catch (e) {
-        console.warn("Failed to set current time to input", e);
+  try {
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+    const isoNow = now.toISOString().slice(0, 16);
+    if (!customTargetTimeInput.value) {
+      customTargetTimeInput.value = isoNow;
     }
+  } catch (e) {
+    console.warn("Failed to set current time to input", e);
+  }
 });
 
 
-        function restoreSavedAlarm() {
-    const saved = JSON.parse(localStorage.getItem('savedAlarm'));
-    if (!saved) return;
 
+
+function restoreSavedAlarm() {
+  const saved = JSON.parse(localStorage.getItem('savedAlarm'));
+
+  if (saved && saved.target) {
     try {
-        const savedTarget = new Date(saved.target);
-        const savedZone = saved.zone || selectedZone;
+      const savedTarget = new Date(saved.target);
+      const savedZone = saved.zone || selectedZone;
 
-        customBoxTarget = savedTarget;
-        customBoxActive = true;
-        customBoxDone = false;
-        selectedZone = savedZone;
+      customBoxTarget = savedTarget;
+      customBoxActive = true;
+      customBoxDone = false;
+      selectedZone = savedZone;
 
-        timezoneSelect.value = savedZone;
-        customTargetTimeInput.value = savedTarget.toISOString().slice(0, 16);
+      timezoneSelect.value = savedZone;
+      customTargetTimeInput.value = savedTarget.toISOString().slice(0, 16);
 
-        console.log("Restored saved alarm:", savedTarget);
+      console.log("Restored saved alarm:", savedTarget);
+      return;
     } catch (e) {
-        console.warn("Failed to restore saved alarm", e);
+      console.warn("Failed to restore saved alarm", e);
     }
+  }
+
+  // ✅ Եթե savedAlarm չկար, կամ դատարկ էր — լռելայն՝ հիմա
+  try {
+  const tzNow = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+  customTargetTimeInput.value = tzNow.toISOString().slice(0, 16);
+} catch (e) {
+  console.warn("Failed to set default alarm time", e);
+}
 }
 
         // --- Core Functions ---
@@ -782,29 +799,43 @@ segmentInfoEl.innerHTML =
 
         // --- Start ---
         document.addEventListener("DOMContentLoaded", () => {
-            
+          // Լռելայն ցույց տալու համար ներկա ժամ՝ եթե դատարկ է
+customTargetTimeInput.addEventListener("focus", () => {
+  if (!customTargetTimeInput.value) {
+    try {
+      const now = new Date(new Date().toLocaleString("en-US", { timeZone: selectedZone }));
+      const isoNow = now.toISOString().slice(0, 16);
+      customTargetTimeInput.value = isoNow;
+    } catch (e) {
+      console.warn("Failed to set current time to input", e);
+    }
+  }
+});
+  
     restoreSavedAlarm(); // ⏰ Ավելացված
+    
     alarmPanels.forEach(data => createAlarmPanel(data));
 
     requestAnimationFrame(updateClock);
 });
 document.getElementById('refreshBtn').addEventListener('click', () => {
-  // Մաքրում ենք input դաշտը
   customTargetTimeInput.value = '';
-
-  // Մաքրում ենք countdown ցուցադրումը
   customCountdownDisplay.textContent = '';
 
-  // Անջատում ենք ընթացիկ զարթուցիչը
   customBoxActive = false;
   customBoxDone = false;
   customBoxTarget = null;
 
-  // Ջնջում ենք պահպանված տվյալը storage-ից
-  localStorage.removeItem('savedAlarm');
+  // Միայն պահի վերնագիրը, բայց թարմացնի մնացածը
+  const savedMainTitle = localStorage.getItem('mainAlarmTitle');
+  localStorage.setItem('savedAlarm', JSON.stringify({
+    target: '',
+    zone: selectedZone
+  }));
 
-  console.log("Alarm reset to initial state.");
+  console.log("Main alarm cleared but preserved title.");
 });
+
 
 <!-- ✅ Ավելացրու սա -->
 
@@ -829,6 +860,12 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
   `;
 
   const alarmId = savedData?.id || Date.now();
+  // Even if no time is set, save placeholder alarm to keep it persistent
+if (!savedData) {
+  alarmPanels.push({ id: alarmId, target: "" });
+  saveAlarms();
+}
+
 
   newPanel.innerHTML = `
   <h3 style="
@@ -843,13 +880,13 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
   display: block;
   text-shadow: none;
 ">
+  <span class="alarm-title" contenteditable="true" style="outline: none;">${alarmTitles[alarmId] || "Set Custom Alarm"}</span>
+  <img src="refresh.svg" alt="Refresh" class="refresh-btn"
+       style="position: absolute; right: 45px; top: 35%; transform: translateY(-50%); cursor: pointer;" />
+  <img src="delete.svg" alt="Delete" class="delete-btn"
+       style="position: absolute; right: 8px; top: 35%; transform: translateY(-50%); cursor: pointer;" />
+</h3>
 
-    Set Custom Alarm
-    <img src="refresh.svg" alt="Refresh" class="refresh-btn"
-         style="position: absolute; right: 45px; top: 35%; transform: translateY(-50%); cursor: pointer;" />
-    <img src="delete.svg" alt="Delete" class="delete-btn"
-         style="position: absolute; right: 8px; top: 35%; transform: translateY(-50%); cursor: pointer;" />
-  </h3>
   <input type="datetime-local" class="customTargetTime" style="
     font-size: 15px;
     padding: 8px 12px;
@@ -938,23 +975,60 @@ display.innerHTML = txt;
   btn.addEventListener("click", startLocalCountdown);
   input.addEventListener("keydown", e => e.key === 'Enter' && startLocalCountdown());
 
-  newPanel.querySelector(".refresh-btn").addEventListener("click", () => {
-    input.value = '';
-    display.textContent = '';
-    active = false;
-    done = false;
-    target = null;
-    alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
-    saveAlarms();
-  });
-
   newPanel.querySelector(".delete-btn").addEventListener("click", () => {
+  newPanel.remove();
+  alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
+  delete alarmTitles[alarmId];
+  saveAlarms();
+  localStorage.setItem("alarmTitles", JSON.stringify(alarmTitles));
+});
+
+newPanel.querySelector(".refresh-btn").addEventListener("click", () => {
+  const titleEl = newPanel.querySelector(".alarm-title");
+  const title = titleEl.textContent.trim();
+  const hasTime = !!input.value;
+
+  input.value = '';
+  display.textContent = '';
+  active = false;
+  done = false;
+  target = null;
+
+  if (!title && !hasTime) {
     newPanel.remove();
     alarmPanels = alarmPanels.filter((a) => a.id !== alarmId);
-    saveAlarms();
-  });
+  } else {
+    alarmPanels = alarmPanels.map(a => a.id === alarmId ? { ...a, target: "" } : a);
+  }
+
+  saveAlarms();
+});
+
+
 
   document.body.appendChild(newPanel);
+
+  const titleEl = newPanel.querySelector(".alarm-title");
+
+  if (alarmTitles[alarmId]) {
+    titleEl.textContent = alarmTitles[alarmId];
+  }
+
+  titleEl.addEventListener("input", () => {
+    alarmTitles[alarmId] = titleEl.textContent.trim();
+    localStorage.setItem("alarmTitles", JSON.stringify(alarmTitles));
+    // Եթե վերնագիր կա, պահում ենք նույնիսկ եթե ժամ չընտրված
+titleEl.addEventListener("input", () => {
+  const updatedTitle = titleEl.textContent.trim();
+  if (updatedTitle) {
+    if (!alarmPanels.some(a => a.id === alarmId)) {
+      alarmPanels.push({ id: alarmId, target: "" });
+      saveAlarms();
+    }
+  }
+});
+
+  });
 
   if (savedData?.target) {
     active = true;
@@ -962,10 +1036,16 @@ display.innerHTML = txt;
   }
 }
 
+
 // ✅ Միացնում ենք addAlarm կոճակը
 document.getElementById("addAlarmBtn").addEventListener("click", () => {
-  createAlarmPanel();
+  const newId = Date.now();
+  alarmTitles[newId] = "Set Custom Alarm";
+  localStorage.setItem("alarmTitles", JSON.stringify(alarmTitles));
+  createAlarmPanel({ id: newId });
 });
+
+
 
 
 
@@ -974,6 +1054,7 @@ document.getElementById("addAlarmBtn").addEventListener("click", () => {
   const clickedEl = e.target;
 
   // Բացառում ենք input, button, select, dropdown panel-ները
+
   if (
   clickedEl.closest("button") ||
   clickedEl.closest("input") ||
@@ -982,8 +1063,9 @@ document.getElementById("addAlarmBtn").addEventListener("click", () => {
   clickedEl.closest(".info-controls") ||
   clickedEl.closest(".refresh-btn") ||
   clickedEl.closest(".delete-btn") ||
-  clickedEl.classList.contains("refresh-btn") ||
-  clickedEl.classList.contains("delete-btn")
+  clickedEl.closest(".custom-alarm-panel .refresh-btn") ||
+  clickedEl.closest(".custom-alarm-panel .delete-btn") ||
+  clickedEl.closest(".alarm-title") // ✅ ԱՅՍ Է ԱՎԵԼԱՑՆԵԼՈՒ ՎԱՅՐԸ
 ) return;
 
 
@@ -1000,7 +1082,15 @@ document.getElementById("addAlarmBtn").addEventListener("click", () => {
   }
 });
 
+  // Գլխավոր վերնագրի վերականգնում՝ էջի բացման ժամանակ
+  const mainAlarmTitle = document.getElementById('mainAlarmTitle');
+  const savedMainTitle = localStorage.getItem('mainAlarmTitle');
+  if (savedMainTitle) mainAlarmTitle.textContent = savedMainTitle;
 
+  // Երբ վերնագիրը փոխում ես՝ պահիր
+  mainAlarmTitle.addEventListener("input", () => {
+    localStorage.setItem('mainAlarmTitle', mainAlarmTitle.textContent.trim());
+  });
 
     </script>
 
